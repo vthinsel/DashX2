@@ -87,7 +87,7 @@ intensity=8 => ma
 
 */
 
-#define DEBUG
+//#define DEBUG
 #include <Boards.h>
 #include "LedControl.h"
 #include <EEPROMex.h>
