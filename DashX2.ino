@@ -1,89 +1,8 @@
 /*
 This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
 http://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
-Initial credits go to Nick Gammon for serial state machine
 
-Version 1.0
-
-Philosophy:
-1- decode serial communication
-2- Manage update of global value including controls and math if needed
-3- Update display using handlePreviousState and config in EEPROM
-*/
-
-/*
-Serial/I2C syntax: [command letter][decimal number]
-// Ax      : Value to dislay in A zone
-// Bx      : Value to dislay in B zone
-// Cx      : Value to dislay in C zone
-// Dx      : Value to dislay in D zone
-// Gx	   : Gear (- for reverse, 0 for neutral)
-// Rx      : RPM update (decimal notation)
-// Tx      : Max RPM
-// Exxxx   : lap time. 4 bytes representing  float according to IEEE
-// Lx      : Display only last x% of RPM on RGB LED ribbon (ex: 1600 max, with L=10 will light LEDS from 1440 to 1600)
-// Ux       : RPM autolearn (on=1,off=0).Usefull when game provides data itself. Otherwise we will learn from values received along time
-// Nx	   : number of red LEDs
-// Mx	   : number of orange LEDs
-// Sx	   : speed multiplier (0=no,1=x3.6). Not used for now
-// Yx      : LED intensity (1-8)
-// Z0      : clear and stop display
-// K0      : start display module
-The command will be processed when a new one starts. For example, RPM will be updated on the module once a new command such as S will start
-Serial data to start with max luminosity set (5), speed=95, RPM=4250, gear=2, lap=3, position=12 (last caracter is to finish processing of RPM, can be anything except a digit)
-
-INIT string:
-T9600L20N3M4S0Y3U0K0 : define RPM to dipsplay between 8991 and 9600 (20%), no RPM learn, intensity = 3, 3 RED LEDS, 4 Orange LEDS
-
-Game string:
-A1B2C3D4G0R9400
-
-T1600L100N3M4S0R1600G2A1B2C3D4G2
-Y2T1600L100N2M3S0R800G2A1B2C3D4G2
-T1600R99
-T1600N2M3L20R1440R1280R1600
-
-If gear is negative, the reverse is assumed and 'r' is displayed
-If gear is 0, neutral is assumed and 'n' is displayed
-
-Power usage: A=B=C=D=8888 RPM=all green GEAR= N (34 LEDS)
-Y1A8888B8888C8888D8888G0T1600R1600G0
-intensity=1 => ma
-intensity=2 => ma
-intensity=3 => ma
-intensity=4 => ma
-intensity=5 => ma
-intensity=6 => ma
-intensity=7 => ma
-intensity=8 => ma
-
-					+----[PWR]-------------------| USB |--+
-					|                            +-----+  |
-					|         GND/RST2  [ ][ ]            |
-					|       MOSI2/SCK2  [ ][ ]  A5/SCL[ ] |   C5
-					|          5V/MISO2 [ ][ ]  A4/SDA[ ] |   C4
-					|                             AREF[ ] |
-					|                              GND[ ] |
-					| [ ]N/C                    SCK/13[ ] |   B5
-					| [ ]IOREF                 MISO/12[ ] |   . TM1638 DATA
-					| [ ]RST                   MOSI/11[X]~|   . TM1638 CLK
-					| [ ]3V3    +---+               10[X]~|   . TM1638 CS
-					| [ ]5v    -| A |-               9[X]~|   .
-					| [ ]GND   -| R |-               8[ ] |   B0
-					| [ ]GND   -| D |-                    |
-					| [ ]Vin   -| U |-               7[ ] |   D7
-					|          -| I |-               6[X]~|   .   DIN RGB LEDS  
-					| [ ]A0    -| N |-               5[ ]~|   .   RPM reset switch (short to GND)
-					| [ ]A1    -| O |-               4[ ] |   .
-					| [ ]A2     +---+           INT1/3[ ]~|   .
-					| [ ]A3                     INT0/2[ ] |   .
-					| [ ]A4/SDA  RST SCK MISO     TX>1[ ] |   .
-					| [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] |   D0
-					|            [ ] [ ] [ ]              |
-					|  UNO_R3    GND MOSI 5V  ____________/
-					\_______________________/
-		 
-					 http://busyducks.com/ascii-art-arduinos
+Check README.md for further details and usage
 
 */
 
@@ -116,10 +35,9 @@ byte rpmpercent; // Range to light leds
 byte speedmult;
 byte intensity;
 bool reverse;
-//String text;
 
 // RPM related stuff
-int rpmmin;
+unsigned int rpmmin;
 int rpmrange;
 int ledweight;
 int rpmlearn;
@@ -131,13 +49,17 @@ states state = NONE;
 // current partial number
 signed int currentValue;
 //Data Clock Strobe
-LedControl lc = LedControl(12, 11, 10, 3);
+LedControl lc = LedControl(10, 12, 11, 3);
 
 #define PIN            6
 // How many NeoPixels are attached to the Arduino?
-#define NUMPIXELS      16
+#define NUMPIXELS      24 // Number of RGB LEDS in ribbon
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 #define RPMRESET 5
+
+#define SEGMODULE1 0
+#define SEGMODULE2 2
+#define GEARMODULE 1
 
 
 void processMaxRPM(const unsigned int value)
@@ -244,7 +166,7 @@ void processA(const unsigned int value)
 	Serial.print(F("ValueA = ")); Serial.println(value);
 #endif
 	valueA= value;
-	printNumber(0, 4 ,value);
+	printNumber(SEGMODULE1, 4 ,value);
 }
 
 void processB(const unsigned int value)
@@ -253,7 +175,7 @@ void processB(const unsigned int value)
 	Serial.print(F("ValueB = ")); Serial.println(value);
 #endif
 	valueB = value;
-	printNumber(0, 0, value);
+	printNumber(SEGMODULE1, 0, value);
 }
 
 void processC(const unsigned int value)
@@ -262,7 +184,7 @@ void processC(const unsigned int value)
 	Serial.print(F("ValueC = ")); Serial.println(value);
 #endif
 	valueC = value;
-	printNumber(1, 4, value);
+	printNumber(SEGMODULE2, 4, value);
 }
 
 void processD(const unsigned int value)
@@ -271,7 +193,7 @@ void processD(const unsigned int value)
 	Serial.print(F("ValueD = ")); Serial.println(value);
 #endif
 	valueD = value;
-	printNumber(1, 0, value);
+	printNumber(SEGMODULE2, 0, value);
 }
 
 void processStop(const unsigned int value)
@@ -301,128 +223,241 @@ void printGear(unsigned int gear)
 	switch (gear) {
 	/*
 	case 0:
-		lc.setRow(2, 0, B00111000);
-		lc.setRow(2, 1, B01000100);
-		lc.setRow(2, 2, B01000100);
-		lc.setRow(2, 3, B01000100);
-		lc.setRow(2, 4, B01000100);
-		lc.setRow(2, 5, B01000100);
-		lc.setRow(2, 6, B01000100);
-		lc.setRow(2, 7, B00111000);
+		lc.setRow(GEARMODULE, 0, B00111000);
+		lc.setRow(GEARMODULE, 1, B01000100);
+		lc.setRow(GEARMODULE, 2, B01000100);
+		lc.setRow(GEARMODULE, 3, B01000100);
+		lc.setRow(GEARMODULE, 4, B01000100);
+		lc.setRow(GEARMODULE, 5, B01000100);
+		lc.setRow(GEARMODULE, 6, B01000100);
+		lc.setRow(GEARMODULE, 7, B00111000);
 		break;
 	*/
+#ifdef MIRROR
 	case 1:
-		lc.setRow(2, 0, B00010000);
-		lc.setRow(2, 1, B00110000);
-		lc.setRow(2, 2, B00010000);
-		lc.setRow(2, 3, B00010000);
-		lc.setRow(2, 4, B00010000);
-		lc.setRow(2, 5, B00010000);
-		lc.setRow(2, 6, B00010000);
-		lc.setRow(2, 7, B00111000);
+		lc.setRow(GEARMODULE, 0, B00010000);
+		lc.setRow(GEARMODULE, 1, B00110000);
+		lc.setRow(GEARMODULE, 2, B00010000);
+		lc.setRow(GEARMODULE, 3, B00010000);
+		lc.setRow(GEARMODULE, 4, B00010000);
+		lc.setRow(GEARMODULE, 5, B00010000);
+		lc.setRow(GEARMODULE, 6, B00010000);
+		lc.setRow(GEARMODULE, 7, B00111000);
 		break;
 	case 2:
-		lc.setRow(2, 0, B00111000);
-		lc.setRow(2, 1, B01000100);
-		lc.setRow(2, 2, B00000100);
-		lc.setRow(2, 3, B00000100);
-		lc.setRow(2, 4, B00001000);
-		lc.setRow(2, 5, B00010000);
-		lc.setRow(2, 6, B00100000);
-		lc.setRow(2, 7, B01111100);
+		lc.setRow(GEARMODULE, 0, B00111000);
+		lc.setRow(GEARMODULE, 1, B01000100);
+		lc.setRow(GEARMODULE, 2, B00000100);
+		lc.setRow(GEARMODULE, 3, B00000100);
+		lc.setRow(GEARMODULE, 4, B00001000);
+		lc.setRow(GEARMODULE, 5, B00010000);
+		lc.setRow(GEARMODULE, 6, B00100000);
+		lc.setRow(GEARMODULE, 7, B01111100);
 		break;
 	case 3:
-		lc.setRow(2, 0, B00111000);
-		lc.setRow(2, 1, B01000100);
-		lc.setRow(2, 2, B00000100);
-		lc.setRow(2, 3, B00011000);
-		lc.setRow(2, 4, B00000100);
-		lc.setRow(2, 5, B00000100);
-		lc.setRow(2, 6, B01000100);
-		lc.setRow(2, 7, B00111000);
+		lc.setRow(GEARMODULE, 0, B00111000);
+		lc.setRow(GEARMODULE, 1, B01000100);
+		lc.setRow(GEARMODULE, 2, B00000100);
+		lc.setRow(GEARMODULE, 3, B00011000);
+		lc.setRow(GEARMODULE, 4, B00000100);
+		lc.setRow(GEARMODULE, 5, B00000100);
+		lc.setRow(GEARMODULE, 6, B01000100);
+		lc.setRow(GEARMODULE, 7, B00111000);
 		break;
 	case 4:
-		lc.setRow(2, 0, B00000100);
-		lc.setRow(2, 1, 12);
-		lc.setRow(2, 2, B00010100);
-		lc.setRow(2, 3, B00100100);
-		lc.setRow(2, 4, B01000100);
-		lc.setRow(2, 5, B01111100);
-		lc.setRow(2, 6, B00000100);
-		lc.setRow(2, 7, B00000100);
+		lc.setRow(GEARMODULE, 0, B00000100);
+		lc.setRow(GEARMODULE, 1, 12);
+		lc.setRow(GEARMODULE, 2, B00010100);
+		lc.setRow(GEARMODULE, 3, B00100100);
+		lc.setRow(GEARMODULE, 4, B01000100);
+		lc.setRow(GEARMODULE, 5, B01111100);
+		lc.setRow(GEARMODULE, 6, B00000100);
+		lc.setRow(GEARMODULE, 7, B00000100);
 		break;
 	case 5:
-		lc.setRow(2, 0, B01111100);
-		lc.setRow(2, 1, B01000000);
-		lc.setRow(2, 2, B01000000);
-		lc.setRow(2, 3, B01111000);
-		lc.setRow(2, 4, B00000100);
-		lc.setRow(2, 5, B00000100);
-		lc.setRow(2, 6, B01000100);
-		lc.setRow(2, 7, B00111000);
+		lc.setRow(GEARMODULE, 0, B01111100);
+		lc.setRow(GEARMODULE, 1, B01000000);
+		lc.setRow(GEARMODULE, 2, B01000000);
+		lc.setRow(GEARMODULE, 3, B01111000);
+		lc.setRow(GEARMODULE, 4, B00000100);
+		lc.setRow(GEARMODULE, 5, B00000100);
+		lc.setRow(GEARMODULE, 6, B01000100);
+		lc.setRow(GEARMODULE, 7, B00111000);
 		break;
 	case 6:
-		lc.setRow(2, 0, B00111000);
-		lc.setRow(2, 1, B01000100);
-		lc.setRow(2, 2, B01000000);
-		lc.setRow(2, 3, B01111000);
-		lc.setRow(2, 4, B01000100);
-		lc.setRow(2, 5, B01000100);
-		lc.setRow(2, 6, B01000100);
-		lc.setRow(2, 7, B00111000);
+		lc.setRow(GEARMODULE, 0, B00111000);
+		lc.setRow(GEARMODULE, 1, B01000100);
+		lc.setRow(GEARMODULE, 2, B01000000);
+		lc.setRow(GEARMODULE, 3, B01111000);
+		lc.setRow(GEARMODULE, 4, B01000100);
+		lc.setRow(GEARMODULE, 5, B01000100);
+		lc.setRow(GEARMODULE, 6, B01000100);
+		lc.setRow(GEARMODULE, 7, B00111000);
 		break;
 	case 7:
-		lc.setRow(2, 0, B01111100);
-		lc.setRow(2, 1, B00000100);
-		lc.setRow(2, 2, B00000100);
-		lc.setRow(2, 3, B00001000);
-		lc.setRow(2, 4, B00010000);
-		lc.setRow(2, 5, B00100000);
-		lc.setRow(2, 6, B00100000);
-		lc.setRow(2, 7, B00100000);
+		lc.setRow(GEARMODULE, 0, B01111100);
+		lc.setRow(GEARMODULE, 1, B00000100);
+		lc.setRow(GEARMODULE, 2, B00000100);
+		lc.setRow(GEARMODULE, 3, B00001000);
+		lc.setRow(GEARMODULE, 4, B00010000);
+		lc.setRow(GEARMODULE, 5, B00100000);
+		lc.setRow(GEARMODULE, 6, B00100000);
+		lc.setRow(GEARMODULE, 7, B00100000);
 		break;
 	case 8:
-		lc.setRow(2, 0, B00111000);
-		lc.setRow(2, 1, B01000100);
-		lc.setRow(2, 2, B01000100);
-		lc.setRow(2, 3, B00111000);
-		lc.setRow(2, 4, B01000100);
-		lc.setRow(2, 5, B01000100);
-		lc.setRow(2, 6, B01000100);
-		lc.setRow(2, 7, B00111000);
+		lc.setRow(GEARMODULE, 0, B00111000);
+		lc.setRow(GEARMODULE, 1, B01000100);
+		lc.setRow(GEARMODULE, 2, B01000100);
+		lc.setRow(GEARMODULE, 3, B00111000);
+		lc.setRow(GEARMODULE, 4, B01000100);
+		lc.setRow(GEARMODULE, 5, B01000100);
+		lc.setRow(GEARMODULE, 6, B01000100);
+		lc.setRow(GEARMODULE, 7, B00111000);
 		break;
 	case 9:
-		lc.setRow(2, 0, B00111000);
-		lc.setRow(2, 1, B01000100);
-		lc.setRow(2, 2, B01000100);
-		lc.setRow(2, 3, B01000100);
-		lc.setRow(2, 4, B00111100);
-		lc.setRow(2, 5, B00000100);
-		lc.setRow(2, 6, B01000100);
-		lc.setRow(2, 7, B00111000);
+		lc.setRow(GEARMODULE, 0, B00111000);
+		lc.setRow(GEARMODULE, 1, B01000100);
+		lc.setRow(GEARMODULE, 2, B01000100);
+		lc.setRow(GEARMODULE, 3, B01000100);
+		lc.setRow(GEARMODULE, 4, B00111100);
+		lc.setRow(GEARMODULE, 5, B00000100);
+		lc.setRow(GEARMODULE, 6, B01000100);
+		lc.setRow(GEARMODULE, 7, B00111000);
 		break;
 	case 0:
-		lc.setRow(2, 0, B11000110);
-		lc.setRow(2, 1, B11100110);
-		lc.setRow(2, 2, B11110110);
-		lc.setRow(2, 3, B11011110);
-		lc.setRow(2, 4, B11001110);
-		lc.setRow(2, 5, B11000110);
-		lc.setRow(2, 6, B11000110);
-		lc.setRow(2, 7, B00000000);
+		lc.setRow(GEARMODULE, 0, B11000110);
+		lc.setRow(GEARMODULE, 1, B11100110);
+		lc.setRow(GEARMODULE, 2, B11110110);
+		lc.setRow(GEARMODULE, 3, B11011110);
+		lc.setRow(GEARMODULE, 4, B11001110);
+		lc.setRow(GEARMODULE, 5, B11000110);
+		lc.setRow(GEARMODULE, 6, B11000110);
+		lc.setRow(GEARMODULE, 7, B00000000);
 		break;
 	case 'r':
-		lc.setRow(2, 0, B11111100);
-		lc.setRow(2, 1, B01100110);
-		lc.setRow(2, 2, B01100110);
-		lc.setRow(2, 3, B01111100);
-		lc.setRow(2, 4, B01101100);
-		lc.setRow(2, 5, B01100110);
-		lc.setRow(2, 6, B11100110);
-		lc.setRow(2, 7, B00000000);
+		lc.setRow(GEARMODULE, 0, B11111100);
+		lc.setRow(GEARMODULE, 1, B01100110);
+		lc.setRow(GEARMODULE, 2, B01100110);
+		lc.setRow(GEARMODULE, 3, B01111100);
+		lc.setRow(GEARMODULE, 4, B01101100);
+		lc.setRow(GEARMODULE, 5, B01100110);
+		lc.setRow(GEARMODULE, 6, B11100110);
+		lc.setRow(GEARMODULE, 7, B00000000);
 		reverse = false;
 		break;
-
+#else
+case 1:
+	lc.setRow(GEARMODULE, 7, B00010000);
+	lc.setRow(GEARMODULE, 6, B00011000);
+	lc.setRow(GEARMODULE, 5, B00010000);
+	lc.setRow(GEARMODULE, 4, B00010000);
+	lc.setRow(GEARMODULE, 3, B00010000);
+	lc.setRow(GEARMODULE, 2, B00010000);
+	lc.setRow(GEARMODULE, 1, B00010000);
+	lc.setRow(GEARMODULE, 0, B00111000);
+	break;
+case 2:
+	lc.setRow(GEARMODULE, 7, B00111000);
+	lc.setRow(GEARMODULE, 6, B01000100);
+	lc.setRow(GEARMODULE, 5, B01000000);
+	lc.setRow(GEARMODULE, 4, B00100000);
+	lc.setRow(GEARMODULE, 3, B00010000);
+	lc.setRow(GEARMODULE, 2, B00001000);
+	lc.setRow(GEARMODULE, 1, B00000100);
+	lc.setRow(GEARMODULE, 0, B01111100);
+	break;
+case 3:
+	lc.setRow(GEARMODULE, 7, B00111000);
+	lc.setRow(GEARMODULE, 6, B01000100);
+	lc.setRow(GEARMODULE, 5, B01000000);
+	lc.setRow(GEARMODULE, 4, B00110000);
+	lc.setRow(GEARMODULE, 3, B01000000);
+	lc.setRow(GEARMODULE, 2, B01000000);
+	lc.setRow(GEARMODULE, 1, B01000100);
+	lc.setRow(GEARMODULE, 0, B00111000);
+	break;
+case 4:
+	lc.setRow(GEARMODULE, 7, B01000000);
+	lc.setRow(GEARMODULE, 6, B01100000);
+	lc.setRow(GEARMODULE, 5, B01010000);
+	lc.setRow(GEARMODULE, 4, B01001000);
+	lc.setRow(GEARMODULE, 3, B01000100);
+	lc.setRow(GEARMODULE, 2, B01111100);
+	lc.setRow(GEARMODULE, 1, B01000000);
+	lc.setRow(GEARMODULE, 0, B01000000);
+	break;
+case 5:
+	lc.setRow(GEARMODULE, 7, B01111100);
+	lc.setRow(GEARMODULE, 6, B00000100);
+	lc.setRow(GEARMODULE, 5, B00000100);
+	lc.setRow(GEARMODULE, 4, B00111100);
+	lc.setRow(GEARMODULE, 3, B01000000);
+	lc.setRow(GEARMODULE, 2, B01000000);
+	lc.setRow(GEARMODULE, 1, B01000100);
+	lc.setRow(GEARMODULE, 0, B00111000);
+	break;
+case 6:
+	lc.setRow(GEARMODULE, 7, B00111000);
+	lc.setRow(GEARMODULE, 6, B01000100);
+	lc.setRow(GEARMODULE, 5, B00000100);
+	lc.setRow(GEARMODULE, 4, B00111100);
+	lc.setRow(GEARMODULE, 3, B01000100);
+	lc.setRow(GEARMODULE, 2, B01000100);
+	lc.setRow(GEARMODULE, 1, B01000100);
+	lc.setRow(GEARMODULE, 0, B00111000);
+	break;
+case 7:
+	lc.setRow(GEARMODULE, 7, B01111100);
+	lc.setRow(GEARMODULE, 6, B01000000);
+	lc.setRow(GEARMODULE, 5, B01000000);
+	lc.setRow(GEARMODULE, 4, B00100000);
+	lc.setRow(GEARMODULE, 3, B00010000);
+	lc.setRow(GEARMODULE, 2, B00001000);
+	lc.setRow(GEARMODULE, 1, B00001000);
+	lc.setRow(GEARMODULE, 0, B00001000);
+	break;
+case 8:
+	lc.setRow(GEARMODULE, 7, B00111000);
+	lc.setRow(GEARMODULE, 6, B01000100);
+	lc.setRow(GEARMODULE, 5, B01000100);
+	lc.setRow(GEARMODULE, 4, B00111000);
+	lc.setRow(GEARMODULE, 3, B01000100);
+	lc.setRow(GEARMODULE, 2, B01000100);
+	lc.setRow(GEARMODULE, 1, B01000100);
+	lc.setRow(GEARMODULE, 0, B00111000);
+	break;
+case 9:
+	lc.setRow(GEARMODULE, 7, B00111000);
+	lc.setRow(GEARMODULE, 6, B01000100);
+	lc.setRow(GEARMODULE, 5, B01000100);
+	lc.setRow(GEARMODULE, 4, B01000100);
+	lc.setRow(GEARMODULE, 3, B01111000);
+	lc.setRow(GEARMODULE, 2, B01000000);
+	lc.setRow(GEARMODULE, 1, B01000100);
+	lc.setRow(GEARMODULE, 0, B00111000);
+	break;
+case 0:
+	lc.setRow(GEARMODULE, 7, B11000110);
+	lc.setRow(GEARMODULE, 6, B11001110);
+	lc.setRow(GEARMODULE, 5, B11011110);
+	lc.setRow(GEARMODULE, 4, B11110110);
+	lc.setRow(GEARMODULE, 3, B11100110);
+	lc.setRow(GEARMODULE, 2, B11000110);
+	lc.setRow(GEARMODULE, 1, B11000110);
+	lc.setRow(GEARMODULE, 0, B00000000);
+	break;
+case 'r':
+	lc.setRow(GEARMODULE, 7, B01111110);
+	lc.setRow(GEARMODULE, 6, B11001100);
+	lc.setRow(GEARMODULE, 5, B11001100);
+	lc.setRow(GEARMODULE, 4, B01111100);
+	lc.setRow(GEARMODULE, 3, B01101100);
+	lc.setRow(GEARMODULE, 2, B11001100);
+	lc.setRow(GEARMODULE, 1, B11001110);
+	lc.setRow(GEARMODULE, 0, B00000000);
+	reverse = false;
+	break;
+#endif
 	}
 }
 
@@ -444,8 +479,8 @@ void CalcRPMRange() {
 
 void handlePreviousState()
 {
-	unsigned int i;
-	word leds=0;
+//	unsigned int i;
+//	word leds=0;
 	switch (state)
 	{
 	case GOT_RPMLEARN:
@@ -508,8 +543,8 @@ void handlePreviousState()
 		CalcRPMRange();
 #endif
 		if (carrpm > rpmmin) {
-			for (int led = 1;led <= NUMPIXELS;led++) {
-				if (carrpm- rpmmin >= led *ledweight ) {
+			for ( int led = 1;led <= NUMPIXELS;led++) {
+				if (carrpm - rpmmin >= led *ledweight ) {
 					if (led > NUMPIXELS - rpmredleds) {
 #if defined DEBUG
 
@@ -572,6 +607,8 @@ void handlePreviousState()
 		break;
 	case GOT_STOP:
 		processStop(currentValue);
+		break;
+	case NONE:
 		break;
 	}  // end of switch
 	currentValue = 0;
@@ -650,56 +687,12 @@ void processIncomingByte(const byte c)
 
 } // end of processIncomingByte
 
-/*
-float byte2float(byte binary[]) {
-	typedef union {
-		float val;
-		byte binary[4];
-	} binaryFloat;
-	binaryFloat unionvar;
-	unionvar.binary[0] = binary[0];
-	unionvar.binary[1] = binary[1];
-	unionvar.binary[2] = binary[2];
-	unionvar.binary[3] = binary[3];
-#if defined DEBUG
-	Serial.print("byte2float: ");
-	for (char i = 0; i <4; i++) {
-		Serial.print(unionvar.binary[i], HEX);Serial.print(" ");
-	}
-	Serial.print("= ");Serial.println(unionvar.val,4);
-#endif
-	return unionvar.val;
-}
 
-unsigned int byte2uint(byte binary[]) {
-	word val;
-	val=word(binary[1],binary[0]);
-#if defined DEBUG
-	Serial.print("byte2uint: ");
-	for (char i = 0; i <2; i++) {
-		Serial.print(binary[i], HEX);Serial.print(" ");
-	}
-	Serial.print("= ");Serial.println(val);
-#endif
-	return (unsigned int)val;
-}
-
-int byte2int(byte binary[]) {
-	int val;
-	val = binary[1] << 8 | binary[0];
-#if defined DEBUG
-	Serial.print("byte2int: ");
-	for (char i = 0; i <2; i++) {
-		Serial.print(binary[i], HEX);Serial.print(" ");
-	}
-	Serial.print("= ");Serial.println(val);
-#endif
-	return val;
-}
-
-*/
 void setup()
 {
+//	unsigned int i;
+//	word leds = 0;
+
 	Serial.begin(115200);
 	state = NONE;
 	delay(1000);
@@ -724,35 +717,6 @@ void setup()
 	reverse = false;
 	pinMode(RPMRESET, INPUT_PULLUP);
 
-/*
-	Wire.begin(8);                // join i2c bus with address #8
-	Wire.onReceive(receiveEvent); // register event
-*/
-/*
-	byte vBuffer[4];
-	byte sBuffer[2];
-	float floatspeed;
-	unsigned int uintspeed;
-	int intspeed;
-	vBuffer[0] = 0x41;
-	vBuffer[1] = 0xA0;
-	vBuffer[2] = 0x30;
-	vBuffer[3] = 0x40;
-	floatspeed=byte2float(vBuffer);
-	vBuffer[0] = 0x40;
-	vBuffer[1] = 0x30;
-	vBuffer[2] = 0xA0;
-	vBuffer[3] = 0x41;
-	floatspeed = byte2float(vBuffer);
-	sBuffer[0] = 0xFE;
-	sBuffer[1] = 0x00;
-	intspeed = byte2int(sBuffer);
-	uintspeed = byte2uint(sBuffer);
-	sBuffer[0] = 0xff;
-	sBuffer[1] = 0xFf;
-	intspeed = byte2int(sBuffer);
-	uintspeed = byte2uint(sBuffer);
-	*/
 	
 	int devices = lc.getDeviceCount();
 	//we have to init all devices in a loop
@@ -765,18 +729,80 @@ void setup()
 		lc.clearDisplay(address);
 	}
 	pixels.begin();
+//	lc.setChar(SEGMODULE1, 0, '2', false);
+//	lc.setChar(SEGMODULE1, 1, 'X', false);
+////	lc.setChar(SEGMODULE1, 2, '', false);
+//	lc.setChar(SEGMODULE1, 3, ' ', false);
+//	lc.setChar(SEGMODULE1, 4, 'H', false);
+//	lc.setDigit(SEGMODULE1, 5, 5, false);
+//	lc.setChar(SEGMODULE1, 6, 'A', false);
+//	lc.setChar(SEGMODULE1, 7, 'D', false);
+//	//lc.setChar(SEGMODULE2, 0, '', true);
+//	lc.setChar(SEGMODULE2, 1, 'Z', false);
+//	lc.setChar(SEGMODULE2, 2, 'X', false);
+//	//lc.setChar(SEGMODULE2, 3, ' ', false);
+//	lc.setChar(SEGMODULE2, 4, 'H', false);
+//	lc.setDigit(SEGMODULE1, 5, 5, false);
+//	lc.setChar(SEGMODULE2, 6, 'A', false);
+//	lc.setChar(SEGMODULE2, 7, 'D', false);
+
+	for (int led = 1;led <= NUMPIXELS;led++) {
+		pixels.setPixelColor(led - 2, pixels.Color(0, 0, 0)); //clear led
+		pixels.setPixelColor(led - 1, pixels.Color(0, 5, 0)); //clear led
+		pixels.show();
+		delay(20);
+}
+	for (int led = NUMPIXELS;led >= 0;led--) {
+		pixels.setPixelColor(led + 1, pixels.Color(0, 0, 0)); //clear led
+		pixels.setPixelColor(led - 1, pixels.Color(5,0 , 0)); //clear led
+		pixels.show();
+		delay(20);
+	}
+	for (int led = 1;led <= NUMPIXELS;led++) {
+		pixels.setPixelColor(led - 2, pixels.Color(0, 0, 0)); //clear led
+		pixels.setPixelColor(led - 1, pixels.Color(0, 0, 5)); //clear led
+		pixels.show();
+		delay(20);
+	}
+
 	pixels.clear();
 	pixels.show();
+	for (int led = 0;led <= 8;led++) {
+		lc.setRow(GEARMODULE, 7, 1 << led);
+		lc.setRow(GEARMODULE, 6, 1 << led);
+		lc.setRow(GEARMODULE, 5, 1 << led);
+		lc.setRow(GEARMODULE, 4, 1 << led);
+		lc.setRow(GEARMODULE, 3, 1 << led);
+		lc.setRow(GEARMODULE, 2, 1 << led);
+		lc.setRow(GEARMODULE, 1, 1 << led);
+		lc.setRow(GEARMODULE, 0, 1 << led);
+		lc.setRow(SEGMODULE1, 7, 1 << led);
+		lc.setRow(SEGMODULE1, 6, 1 << led);
+		lc.setRow(SEGMODULE1, 5, 1 << led);
+		lc.setRow(SEGMODULE1, 4, 1 << led);
+		lc.setRow(SEGMODULE1, 3, 1 << led);
+		lc.setRow(SEGMODULE1, 2, 1 << led);
+		lc.setRow(SEGMODULE1, 1, 1 << led);
+		lc.setRow(SEGMODULE1, 0, 1 << led);
+		lc.setRow(SEGMODULE2, 7, 1 << led);
+		lc.setRow(SEGMODULE2, 7, 1 << led);
+		lc.setRow(SEGMODULE2, 6, 1 << led);
+		lc.setRow(SEGMODULE2, 5, 1 << led);
+		lc.setRow(SEGMODULE2, 4, 1 << led);
+		lc.setRow(SEGMODULE2, 3, 1 << led);
+		lc.setRow(SEGMODULE2, 2, 1 << led);
+		lc.setRow(SEGMODULE2, 1, 1 << led);
+		lc.setRow(SEGMODULE2, 0, 1 << led);
+		delay(35);
+	}
 }  // end of setup
 
 void loop()
 {
-	int delayval = 500; // delay for half a second
-
+	//int delayval = 500; // delay for half a second
 	//  buttons = btn4; //For testing purpose
 	while (1 == 1) {
-		while (Serial.available()) processIncomingByte(Serial.read());
-	
+		while (Serial.available()) processIncomingByte(Serial.read());	
 		if ((digitalRead(RPMRESET) == LOW))
 		{
 			rpmmax = 1000;
@@ -786,70 +812,3 @@ void loop()
 		}
 	}
 }
-
-/*
-void receiveEvent(int howMany) {
-	while (1 <= Wire.available()) { 
-		char c = Wire.read(); // receive byte as a character
-#if defined DEBUG
-		Serial.print(c);         // print the character
-#endif
-		switch (c) {
-			case 'S': {
-				state = GOT_S;
-				byte speedbyte[4];
-				int i = 0;
-				while (Wire.available()) {
-					speedbyte[i++] = (byte)Wire.read();
-	#if defined DEBUG
-					Serial.print(speedbyte[i-1],HEX);         // print the character
-	#endif
-					  }
-#if defined DEBUG
-				Serial.println("");
-#endif
-					currentValue = (int)byte2float(speedbyte);
-					//processSpeed(currentValue);
-	#if defined DEBUG
-					Serial.print("I2C Speed:");Serial.println(currentValue);
-	#endif
-					handlePreviousState();
-					state = NONE;
-					break;
-			}
-			case 'R': {
-				state = GOT_R;
-				byte rpmbyte[2];
-				int i = 0;
-				while (Wire.available()) {
-					rpmbyte[i++] = (byte)Wire.read();
-	#if defined DEBUG
-					Serial.print(rpmbyte[i - 1],HEX);         // print the character
-	#endif
-				}
-#if defined DEBUG
-				Serial.println("");
-#endif
-				currentValue = byte2uint(rpmbyte);
-				//processRPM((unsigned int)currentValue);
-	#if defined DEBUG
-				Serial.print("I2C RPM:");Serial.println(currentValue);
-	#endif
-				handlePreviousState();
-				state = NONE;
-				break;
-			}
-			case 'G': {
-				state = GOT_G;
-				handlePreviousState();
-				state = NONE;
-				break;
-			}
-		}
-
-	}
-	//int x = Wire.read();    // receive byte as an integer
-	// char c = Wire.read();
-	//Serial.println(c);         // print the integer
-}
-*/

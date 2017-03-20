@@ -14,7 +14,7 @@ Ax      : Value to dislay in A zone
 Bx      : Value to dislay in B zone
 Cx      : Value to dislay in C zone
 Dx      : Value to dislay in D zone
-Gx	   : Gear (- for reverse, 0 for neutral)
+Gx	   : Gear (- mafor reverse, 0 for neutral)
 Rx      : RPM update (decimal notation)
 Tx      : Max RPM
 Exxxx   : lap time. 4 bytes representing  float according to IEEE
@@ -34,6 +34,8 @@ processing of RPM, can be anything except a digit)
 
 Sample INIT string, to make sure everything is initialized at least once in EEPROM correctly:
 T9600L20N3M4S0Y3U0K0 : define RPM to dipsplay between 8991 and 9600 (20%), no RPM learn, intensity = 3, 3 RED LEDS, 4 Orange LEDS
+L40N3M4S0Y3U1K0 : define RPM to dipsplay (40%), RPM learn, intensity = 3, 3 RED LEDS, 4 Orange LEDS
+
 
 Sample Game string:
 T1600L100N3M4S0R1600G2A1B2C3D4G2
@@ -85,28 +87,28 @@ Arduino UNO / Genuino wiring:
 Arduino NANO layout:
 
 
-                      +-----+
-         +------------| USB |------------+
-         |            +-----+            |
-    B5   | [ ]D13/SCK        MISO/D12[ ] |   B4 - TM1638 DATA
-         | [ ]3.3V           MOSI/D11[ ]~|   B3 - TM1638 CLK
-         | [ ]V.ref     ___    SS/D10[ ]~|   B2 - TM1638 CS
-    C0   | [ ]A0       / N \       D9[ ]~|   B1
-    C1   | [ ]A1      /  A  \      D8[ ] |   B0
-    C2   | [ ]A2      \  N  /      D7[ ] |   D7
-    C3   | [ ]A3       \_0_/       D6[ ]~|   D6 - DIN RGB LEDS
-    C4   | [ ]A4/SDA               D5[ ]~|   D5 - RPM reset switch (short to GND)
-    C5   | [ ]A5/SCL               D4[ ] |   D4
-         | [ ]A6              INT1/D3[ ]~|   D3
-         | [ ]A7              INT0/D2[ ] |   D2
+					  +-----+
+		 +------------| USB |------------+
+		 |            +-----+            |
+	B5   | [ ]D13/SCK        MISO/D12[ ] |   B4 - TM1638 DATA
+		 | [ ]3.3V           MOSI/D11[ ]~|   B3 - TM1638 CLK
+		 | [ ]V.ref     ___    SS/D10[ ]~|   B2 - TM1638 CS
+	C0   | [ ]A0       / N \       D9[ ]~|   B1
+	C1   | [ ]A1      /  A  \      D8[ ] |   B0
+	C2   | [ ]A2      \  N  /      D7[ ] |   D7
+	C3   | [ ]A3       \_0_/       D6[ ]~|   D6 - DIN RGB LEDS
+	C4   | [ ]A4/SDA               D5[ ]~|   D5 - RPM reset switch (short to GND)
+	C5   | [ ]A5/SCL               D4[ ] |   D4
+		 | [ ]A6              INT1/D3[ ]~|   D3
+		 | [ ]A7              INT0/D2[ ] |   D2
 TM1638+  | [ ]5V                  GND[ ] |     
-    C6   | [ ]RST                 RST[ ] |   C6
+	C6   | [ ]RST                 RST[ ] |   C6
 TM1638-  | [ ]GND   5V MOSI GND   TX1[ ] |   D0
-         | [ ]Vin   [ ] [ ] [ ]   RX1[ ] |   D1
-         |          [ ] [ ] [ ]          |
-         |          MISO SCK RST         |
-         | NANO-V3                       |
-         +-------------------------------+
-         
-         http://busyducks.com/ascii-art-arduinos
+		 | [ ]Vin   [ ] [ ] [ ]   RX1[ ] |   D1
+		 |          [ ] [ ] [ ]          |
+		 |          MISO SCK RST         |
+		 | NANO-V3                       |
+		 +-------------------------------+
+		 
+		 http://busyducks.com/ascii-art-arduinos
 					 http://busyducks.com/ascii-art-arduinos
