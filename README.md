@@ -10,22 +10,20 @@ Philosophy:
 
 
 Serial/I2C syntax: [command letter][decimal number]
-Ax      : Value to dislay in A zone
-Bx      : Value to dislay in B zone
-Cx      : Value to dislay in C zone
-Dx      : Value to dislay in D zone
+Ax     : Value to dislay in A zone
+Bx     : Value to dislay in B zone
+Cx     : Value to dislay in C zone
+Dx     : Value to dislay in D zone
 Gx	   : Gear (- mafor reverse, 0 for neutral)
-Rx      : RPM update (decimal notation)
-Tx      : Max RPM
-Exxxx   : lap time. 4 bytes representing  float according to IEEE
-Lx      : Display only last x% of RPM on RGB LED ribbon (ex: 1600 max, with L=10 will light LEDS from 1440 to 1600)
-Ux       : RPM autolearn (on=1,off=0).Usefull when game provides data itself. Otherwise we will learn from values received along time
+Rx     : RPM update (decimal notation)
+Tx     : Max RPM
+Lx     : Display only last x% of RPM on RGB LED ribbon (ex: 1600 max, with L=10 will light LEDS from 1440 to 1600)
+Ux     : RPM autolearn (on=1,off=0).Usefull when game provides data itself. Otherwise we will learn from values received along time
 Nx	   : number of red LEDs
 Mx	   : number of orange LEDs
-Sx	   : speed multiplier (0=no,1=x3.6). Not used for now
-Yx      : LED intensity (1-8)
-Z0      : clear and stop display
-K0      : start display module
+Yx     : LED intensity (1-8)
+Z0     : clear and stop display
+K0     : start display module
 
 The command will be processed when a new one starts. For example, RPM will be updated on the module once a new command 
 such as S will start
@@ -48,14 +46,14 @@ If gear is 0, neutral is assumed and 'n' is displayed
 
 Power usage: A=B=C=D=8888 RPM=all green GEAR= N (34 LEDS)
 Y1A8888B8888C8888D8888G0T1600R1600G0
-intensity=1 => ma
-intensity=2 => ma
-intensity=3 => ma
-intensity=4 => ma
-intensity=5 => ma
-intensity=6 => ma
-intensity=7 => ma
-intensity=8 => ma
+intensity=1 => ? ma
+intensity=2 => ? ma
+intensity=3 => ? ma
+intensity=4 => ? ma
+intensity=5 => ? ma
+intensity=6 => ? ma
+intensity=7 => ? ma
+intensity=8 => ? ma
 
 Arduino UNO / Genuino wiring: 
 	+----[PWR]-------------------| USB |--+
@@ -66,9 +64,9 @@ Arduino UNO / Genuino wiring:
 	|                             AREF[ ] |
 	|                              GND[ ] |
 	| [ ]N/C                    SCK/13[ ] |   B5
-	| [ ]IOREF                 MISO/12[ ] |   . TM1638 DATA
-	| [ ]RST                   MOSI/11[X]~|   . TM1638 CLK
-	| [ ]3V3    +---+               10[X]~|   . TM1638 CS
+	| [ ]IOREF                 MISO/12[ ] |   . TM1638 CLK
+	| [ ]RST                   MOSI/11[X]~|   . TM1638 CS
+	| [ ]3V3    +---+               10[X]~|   . TM1638 DATA
 	| [ ]5v    -| A |-               9[X]~|   .
 	| [ ]GND   -| R |-               8[ ] |   B0
 	| [ ]GND   -| D |-                    |
@@ -86,13 +84,12 @@ Arduino UNO / Genuino wiring:
 
 Arduino NANO layout:
 
-
 					  +-----+
 		 +------------| USB |------------+
 		 |            +-----+            |
-	B5   | [ ]D13/SCK        MISO/D12[ ] |   B4 - TM1638 DATA
-		 | [ ]3.3V           MOSI/D11[ ]~|   B3 - TM1638 CLK
-		 | [ ]V.ref     ___    SS/D10[ ]~|   B2 - TM1638 CS
+	B5   | [ ]D13/SCK        MISO/D12[ ] |   B4 - TM1638 CLK
+		 | [ ]3.3V           MOSI/D11[ ]~|   B3 - TM1638 CS
+		 | [ ]V.ref     ___    SS/D10[ ]~|   B2 - TM1638 DATA
 	C0   | [ ]A0       / N \       D9[ ]~|   B1
 	C1   | [ ]A1      /  A  \      D8[ ] |   B0
 	C2   | [ ]A2      \  N  /      D7[ ] |   D7
