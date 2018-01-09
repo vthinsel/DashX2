@@ -39,7 +39,7 @@ bool reverse;
 // RPM related stuff
 unsigned int rpmmin;
 int rpmrange;
-int ledweight;
+unsigned int ledweight;
 int rpmlearn;
 // the possible states of the state-machine
 typedef enum { NONE, GOT_RPMLEARN, GOT_INTENSITY, GOT_SPEEDMULT, GOT_A, GOT_B, GOT_C, GOT_D, GOT_R, GOT_G, GOT_STOP, GOT_START, GOT_MAXRPM , GOT_RPMPCT, GOT_RPMREDLEDS, GOT_RPMORANGELEDS} states;
@@ -543,8 +543,8 @@ void handlePreviousState()
 		CalcRPMRange();
 #endif
 		if (carrpm > rpmmin) {
-			for ( int led = 1;led <= NUMPIXELS;led++) {
-				if (carrpm - rpmmin >= led *ledweight ) {
+			for ( byte led = 1;led <= NUMPIXELS;led++) {
+				if (carrpm - rpmmin >= led * ledweight ) {
 					if (led > NUMPIXELS - rpmredleds) {
 #if defined DEBUG
 
@@ -707,7 +707,7 @@ void setup()
 		intensity = 2;
 	}
 	CalcRPMRange();
-	Serial.println(F("**** DASHX2 v1.0 ****"));
+	Serial.println(F("**** DASHX2 v1.1 ****"));
 	Serial.print(F("RED LEDS    = "));Serial.println(rpmredleds);
 	Serial.print(F("ORANGE LEDS = "));Serial.println(rpmorangeleds);
 	Serial.print(F("RPMPERCENT  = "));Serial.println(rpmpercent);
