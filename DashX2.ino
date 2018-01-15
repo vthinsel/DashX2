@@ -7,7 +7,6 @@ Check README.md for further details and usage
 */
 
 //#define DEBUG
-#include <Boards.h>
 #include "LedControl.h"
 #include <EEPROMex.h>
 #include <SoftwareSerial.h>
@@ -465,7 +464,7 @@ void CalcRPMRange() {
 	rpmrange = rpmmax / 100 * rpmpercent ; //divide before otherwise, could overflow
 	rpmmin = rpmmax - rpmrange;
 	ledweight = (rpmrange / NUMPIXELS);
-	EEPROM.updateByte(18, rpmmax);
+	//EEPROM.updateByte(24, rpmmax);
 #if defined DEBUG
 	Serial.print(F("MAX RPM    = "));Serial.println(rpmmax);
 	Serial.print(F("MIN RPM    = "));Serial.println(rpmmin);
