@@ -1,9 +1,7 @@
 /*
 This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
 http://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
-
 Check README.md for further details and usage
-
 */
 
 //#define DEBUG
@@ -715,8 +713,6 @@ void setup()
 	Serial.print(F("RPMLEARN    = "));Serial.println(rpmlearn);
 	reverse = false;
 	pinMode(RPMRESET, INPUT_PULLUP);
-
-	
 	int devices = lc.getDeviceCount();
 	//we have to init all devices in a loop
 	for (int address = 0;address<devices;address++) {
