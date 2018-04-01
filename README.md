@@ -14,7 +14,7 @@ Ax     : Value to dislay in A zone
 Bx     : Value to dislay in B zone
 Cx     : Value to dislay in C zone
 Dx     : Value to dislay in D zone
-Gx	   : Gear (- mafor reverse, 0 for neutral)
+Gx	   : Gear (- for reverse, 0 for neutral)
 Rx     : RPM update (decimal notation)
 Tx     : Max RPM
 Lx     : Display only last x% of RPM on RGB LED ribbon (ex: 1600 max, with L=10 will light LEDS from 1440 to 1600)
