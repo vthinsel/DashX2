@@ -129,8 +129,14 @@ void printNumber(int module, int offset, int v) {
 	int hundreds;
 	int thousands;
 
-	if ( v > 9999)
-		return;
+	if ( v > 9999){
+  v = v / 10;
+	}
+ if ( v > 9999){
+  v = 9999;
+ }
+ 
+	//	return;
 	ones = v % 10;
 	v = v / 10;
 	tens = v % 10;
@@ -151,12 +157,25 @@ void printNumber(int module, int offset, int v) {
 			}
 		}
 	}
-	if (thousands) { lc.setDigit(module, 3 + offset, (byte)thousands, false); }
-	if (hundreds) { lc.setDigit(module, 2 + offset, (byte)hundreds, false); }
-	if (tens) { lc.setDigit(module, 1 + offset, (byte)tens, false); }
-	if (ones) { lc.setDigit(module, 0 + offset, (byte)ones, true); }
+  if (thousands) { 
+    lc.setDigit(module, 3 + offset, (byte)thousands, false);
+    lc.setDigit(module, 2 + offset, (byte)hundreds, false); 
+    lc.setDigit(module, 1 + offset, (byte)tens, false); 
+    lc.setDigit(module, 0 + offset, (byte)ones, true); 
+  }
+  else if (hundreds) {
+    lc.setDigit(module, 2 + offset, (byte)hundreds, false);
+	  lc.setDigit(module, 1 + offset, (byte)tens, false); 
+	  lc.setDigit(module, 0 + offset, (byte)ones, true);
+  }
+  else if (tens) {
+    lc.setDigit(module, 1 + offset, (byte)tens, false);
+    lc.setDigit(module, 0 + offset, (byte)ones, true);
+  }
+  else if (ones) {
+    lc.setDigit(module, 0 + offset, (byte)ones, true);
+  }
 }
-
 void processA(const unsigned int value)
 {
 #if defined DEBUG
@@ -544,7 +563,6 @@ void handlePreviousState()
 				if (carrpm - rpmmin >= led * ledweight ) {
 					if (led > NUMPIXELS - rpmredleds) {
 #if defined DEBUG
-
 						Serial.print(F("LED "));Serial.print(led);Serial.println(F(" is RED "));
 #endif
 						pixels.setPixelColor(led - 1, pixels.Color(intensity, 0, 0)); // Moderately red color.
@@ -555,7 +573,6 @@ void handlePreviousState()
 							Serial.print(F("LED "));Serial.print(led);Serial.println(F(" is ORANGE "));
 #endif
 							pixels.setPixelColor(led - 1, pixels.Color(intensity + 3, intensity + 1 / 2, 0)); // Moderately orange color.
-
 						}
 						else {
 #if defined DEBUG
@@ -572,7 +589,6 @@ void handlePreviousState()
 #endif
 				}
 			}
-
 		}
 		else {
 #if defined DEBUG
@@ -621,7 +637,7 @@ void processIncomingByte(const byte c)
 	else {
 		// The end of the number signals a state change
 		if (c != '-') { handlePreviousState(); } //we need to manage minus sign for negative gear, meaning reverse speed
-	  // set the new state, if we rectnesognize it
+	  // set the new state, if we recognize it
 		switch (c)
 		{
 		case '-':
@@ -704,7 +720,7 @@ void setup()
 		intensity = 2;
 	}
 	CalcRPMRange();
-	Serial.println(F("**** DASHX2 v1.1 ****"));
+	Serial.println(F("**** DASHX2 v1.2 ****"));
 	Serial.print(F("RED LEDS    = "));Serial.println(rpmredleds);
 	Serial.print(F("ORANGE LEDS = "));Serial.println(rpmorangeleds);
 	Serial.print(F("RPMPERCENT  = "));Serial.println(rpmpercent);
