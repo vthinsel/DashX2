@@ -92,37 +92,6 @@ void processGear(const unsigned int value)
 	printGear(cargear);
 }
 
-void printNumberNeg(int v) {
-	int ones;
-	int tens;
-	int hundreds;
-	boolean negative;
-
-	if (v < -999 || v > 999)
-		return;
-	if (v<0) {
-		negative = true;
-		v = v*-1;
-	}
-	ones = v % 10;
-	v = v / 10;
-	tens = v % 10;
-	v = v / 10;
-	hundreds = v;
-	if (negative) {
-		//print character '-' in the leftmost column	
-		lc.setChar(0, 3, '-', false);
-	}
-	else {
-		//print a blank in the sign column
-		lc.setChar(0, 3, ' ', false);
-	}
-	//Now print the number digit by digit
-	lc.setDigit(0, 2, (byte)hundreds, false);
-	lc.setDigit(0, 1, (byte)tens, false);
-	lc.setDigit(0, 0, (byte)ones, false);
-}
-
 void printNumber(int module, int offset, int v) {
 	int ones;
 	int tens;
@@ -130,13 +99,11 @@ void printNumber(int module, int offset, int v) {
 	int thousands;
 
 	if ( v > 9999){
-  v = v / 10;
+		v = v / 10;
 	}
- if ( v > 9999){
-  v = 9999;
- }
- 
-	//	return;
+	if ( v > 9999){
+		v = 9999;
+	}
 	ones = v % 10;
 	v = v / 10;
 	tens = v % 10;
@@ -144,7 +111,7 @@ void printNumber(int module, int offset, int v) {
 	hundreds = v % 10 ;
 	v = v / 10;
 	thousands = v;
-	//Now print the number digit by digit
+	//Now clean digits not used
 	if (thousands == 0){
 		lc.setChar(module, 3 + offset, ' ', false);
 		if (hundreds == 0) {
@@ -157,24 +124,25 @@ void printNumber(int module, int offset, int v) {
 			}
 		}
 	}
-  if (thousands) { 
-    lc.setDigit(module, 3 + offset, (byte)thousands, false);
-    lc.setDigit(module, 2 + offset, (byte)hundreds, false); 
-    lc.setDigit(module, 1 + offset, (byte)tens, false); 
-    lc.setDigit(module, 0 + offset, (byte)ones, true); 
-  }
-  else if (hundreds) {
-    lc.setDigit(module, 2 + offset, (byte)hundreds, false);
-	  lc.setDigit(module, 1 + offset, (byte)tens, false); 
-	  lc.setDigit(module, 0 + offset, (byte)ones, true);
-  }
-  else if (tens) {
-    lc.setDigit(module, 1 + offset, (byte)tens, false);
-    lc.setDigit(module, 0 + offset, (byte)ones, true);
-  }
-  else if (ones) {
-    lc.setDigit(module, 0 + offset, (byte)ones, true);
-  }
+	//Now print the number digit by digit
+	if (thousands) { 
+		lc.setDigit(module, 3 + offset, (byte)thousands, false);
+		lc.setDigit(module, 2 + offset, (byte)hundreds, false); 
+		lc.setDigit(module, 1 + offset, (byte)tens, false); 
+		lc.setDigit(module, 0 + offset, (byte)ones, true); 
+	}
+	else if (hundreds) {
+		lc.setDigit(module, 2 + offset, (byte)hundreds, false);
+		lc.setDigit(module, 1 + offset, (byte)tens, false); 
+		lc.setDigit(module, 0 + offset, (byte)ones, true);
+	}
+	else if (tens) {
+		lc.setDigit(module, 1 + offset, (byte)tens, false);
+		lc.setDigit(module, 0 + offset, (byte)ones, true);
+	}
+	else if (ones) {
+		lc.setDigit(module, 0 + offset, (byte)ones, true);
+	}
 }
 void processA(const unsigned int value)
 {
@@ -555,6 +523,7 @@ void handlePreviousState()
 		break;
 	case GOT_R:
 		processRPM(currentValue);
+		CalcRPMRange();
 #if defined DEBUG
 		CalcRPMRange();
 #endif
@@ -720,7 +689,7 @@ void setup()
 		intensity = 2;
 	}
 	CalcRPMRange();
-	Serial.println(F("**** DASHX2 v1.2 ****"));
+	Serial.println(F("**** DASHX2 v1.21 ****"));
 	Serial.print(F("RED LEDS    = "));Serial.println(rpmredleds);
 	Serial.print(F("ORANGE LEDS = "));Serial.println(rpmorangeleds);
 	Serial.print(F("RPMPERCENT  = "));Serial.println(rpmpercent);
