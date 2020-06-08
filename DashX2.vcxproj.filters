@@ -16,6 +16,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="DashX2.ino" />
+    <None Include="README.md" />
+    <None Include="LICENSE.md" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__vm\.DashX2.vsarduino.h">

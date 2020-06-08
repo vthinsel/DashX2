@@ -8,12 +8,16 @@ Philosophy:
 3- Update display using handlePreviousState and config in EEPROM
 
 
-
 Serial/I2C syntax: [command letter][decimal number]
 Ax     : Value to dislay in A zone
 Bx     : Value to dislay in B zone
 Cx     : Value to dislay in C zone
 Dx     : Value to dislay in D zone
+Ex     : Value to dislay in E zone
+Fx     : Value to dislay in F zone
+Hx     : Value to dislay in H zone
+Ix     : Value to dislay in I zone
+
 Gx	   : Gear (- for reverse, 0 for neutral)
 Rx     : RPM update (decimal notation)
 Tx     : Max RPM
@@ -21,6 +25,7 @@ Lx     : Display only last x% of RPM on RGB LED ribbon (ex: 1600 max, with L=10 
 Ux     : RPM autolearn (on=1,off=0).Usefull when game provides data itself. Otherwise we will learn from values received along time
 Nx	   : number of red LEDs
 Mx	   : number of orange LEDs
+Sx     : Enable(1)/Disable(0) speed multiplier
 Yx     : LED intensity (1-8)
 Z0     : clear and stop display
 K0     : start display module
