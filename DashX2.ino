@@ -3,8 +3,6 @@ This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAl
 http://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
 Check README.md for further details and usage
 */
-
-//#define DEBUG
 #include "LedControl.h"
 #include <EEPROMex.h>
 #include <SoftwareSerial.h>
@@ -13,15 +11,38 @@ Check README.md for further details and usage
 #ifdef __AVR__
 #include <avr/power.h>
 #endif
-
-#undef _EEPROMEX_DEBUG
-
-//#include <Wire.h>
 #undef _EEPROMEX_DEBUG //to prevent false alarms on EEPROM write execeeded
+
+// ===============================
+// = Change to match your config =
+// ===============================
+//#define DEBUG
+// How many NeoPixels are attached to the Arduino?
+#define NUMPIXELS      24 // Number of RGB LEDS in ribbon
+// On which PIN are the NeoPixel attached to ?
+#define PIN            6
+// NeoPixel right/left or left/right orientation
+#define REVERSERPMLEDS
+// MAX7219 pinout (Data,Clock,Strobe,number of cascaded modules)
+LedControl lc = LedControl(10, 12, 11, 5);
+// MAX7219 cascaded modules order. Depends on the soldering
+#define SEGMODULE1 1
+#define SEGMODULE2 2
+#define SEGMODULE3 3
+#define SEGMODULE4 4
+#define GEARMODULE 0
+
+// ======================
+// = DO NOT TOUCH BELOW =
+// ======================
 unsigned int valueA;
 unsigned int valueB;
 unsigned int valueC;
 unsigned int valueD;
+unsigned int valueE;
+unsigned int valueF;
+unsigned int valueH;
+unsigned int valueI;
 unsigned int carrpm;           // holds the rpm data (0-65535 size)
 unsigned int cargear;          // holds gear value data (0-65535 size)
 unsigned int rpmmax = 1000;    // autocalibrating initial RPM max val
@@ -39,24 +60,17 @@ int rpmrange;
 unsigned int ledweight;
 int rpmlearn;
 // the possible states of the state-machine
-typedef enum { NONE, GOT_RPMLEARN, GOT_INTENSITY, GOT_SPEEDMULT, GOT_A, GOT_B, GOT_C, GOT_D, GOT_R, GOT_G, GOT_STOP, GOT_START, GOT_MAXRPM , GOT_RPMPCT, GOT_RPMREDLEDS, GOT_RPMORANGELEDS} states;
+typedef enum { NONE, GOT_RPMLEARN, GOT_INTENSITY, GOT_SPEEDMULT, GOT_A, GOT_B, GOT_C, GOT_D, GOT_E, GOT_F, GOT_H, GOT_I, GOT_R, GOT_G, GOT_STOP, GOT_START, GOT_MAXRPM , GOT_RPMPCT, GOT_RPMREDLEDS, GOT_RPMORANGELEDS} states;
 
 // current state-machine state
 states state = NONE;
 // current partial number
 signed int currentValue;
-//Data Clock Strobe
-LedControl lc = LedControl(10, 12, 11, 3);
 
-#define PIN            6
-// How many NeoPixels are attached to the Arduino?
-#define NUMPIXELS      24 // Number of RGB LEDS in ribbon
+
+
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 #define RPMRESET 5
-
-#define SEGMODULE1 0
-#define SEGMODULE2 2
-#define GEARMODULE 1
 
 
 void processMaxRPM(const unsigned int value)
@@ -75,7 +89,7 @@ void processRPM(const unsigned int value)
 	Serial.print(F("RPM = ")); Serial.println(value);
 #endif
 	carrpm = value;
-	if (carrpm > rpmmax && carrpm < 50000 && rpmlearn == 1) {
+	if (carrpm > rpmmax && carrpm < 13000 && rpmlearn == 1) {
 		rpmmax = carrpm;
 		CalcRPMRange();
 	}
@@ -179,6 +193,43 @@ void processD(const unsigned int value)
 	valueD = value;
 	printNumber(SEGMODULE2, 0, value);
 }
+
+void processE(const unsigned int value)
+{
+#if defined DEBUG
+	Serial.print(F("ValueE = ")); Serial.println(value);
+#endif
+	valueE = value;
+	printNumber(SEGMODULE3, 4, value);
+}
+
+void processF(const unsigned int value)
+{
+#if defined DEBUG
+	Serial.print(F("ValueF = ")); Serial.println(value);
+#endif
+	valueF = value;
+	printNumber(SEGMODULE3, 0, value);
+}
+
+void processH(const unsigned int value)
+{
+#if defined DEBUG
+	Serial.print(F("ValueH = ")); Serial.println(value);
+#endif
+	valueH = value;
+	printNumber(SEGMODULE4, 4, value);
+}
+
+void processI(const unsigned int value)
+{
+#if defined DEBUG
+	Serial.print(F("ValueI = ")); Serial.println(value);
+#endif
+	valueI = value;
+	printNumber(SEGMODULE4, 0, value);
+}
+
 
 void processStop(const unsigned int value)
 {// We just clear everything
@@ -479,7 +530,6 @@ void handlePreviousState()
 		Serial.print(F("RPM Learn = ")); Serial.println(rpmlearn);
 #endif
 		break;
-
 	case GOT_INTENSITY:
 		intensity = currentValue;
 		for (int address = 0;address<lc.getDeviceCount();address++) {
@@ -528,31 +578,52 @@ void handlePreviousState()
 		CalcRPMRange();
 #endif
 		if (carrpm > rpmmin) {
-			for ( byte led = 1;led <= NUMPIXELS;led++) {
+			for ( byte led = NUMPIXELS;led >= 1;led--) {
 				if (carrpm - rpmmin >= led * ledweight ) {
 					if (led > NUMPIXELS - rpmredleds) {
 #if defined DEBUG
 						Serial.print(F("LED "));Serial.print(led);Serial.println(F(" is RED "));
 #endif
-						pixels.setPixelColor(led - 1, pixels.Color(intensity, 0, 0)); // Moderately red color.
+#if defined REVERSERPMLEDS
+            pixels.setPixelColor(NUMPIXELS-led, pixels.Color(intensity+1/2, 0, 0)); // Moderately red color.
+#else
+            pixels.setPixelColor(led - 1, pixels.Color(intensity+1/2, 0, 0)); // Moderately red color.
+#endif  
+
 					}
 					else {
 						if (led > NUMPIXELS - rpmredleds - rpmorangeleds ) {
 #if defined DEBUG
 							Serial.print(F("LED "));Serial.print(led);Serial.println(F(" is ORANGE "));
 #endif
-							pixels.setPixelColor(led - 1, pixels.Color(intensity + 3, intensity + 1 / 2, 0)); // Moderately orange color.
+#if defined REVERSERPMLEDS
+              pixels.setPixelColor(NUMPIXELS-led, pixels.Color(intensity + 3, intensity + 1 / 2, 0)); // Moderately orange color.
+#else
+              pixels.setPixelColor(led - 1, pixels.Color(intensity + 3, intensity + 1 / 2, 0)); // Moderately orange color.
+#endif
 						}
 						else {
 #if defined DEBUG
 							Serial.print(F("LED "));Serial.print(led);Serial.println(F(" is GREEN "));
 #endif
-							pixels.setPixelColor(led - 1, pixels.Color(0, intensity, 0)); // Moderately green color.
+#if defined REVERSERPMLEDS
+#else
+#endif							
+#if defined REVERSERPMLEDS
+              pixels.setPixelColor(NUMPIXELS-led, pixels.Color(0, intensity, 0)); // Moderately green color.
+#else
+              pixels.setPixelColor(led - 1, pixels.Color(0, intensity, 0)); // Moderately green color.
+#endif
 						}
 					}
 				}
 				else {
-					pixels.setPixelColor(led - 1, pixels.Color(0, 0, 0)); //clear led
+#if defined REVERSERPMLEDS
+          pixels.setPixelColor(NUMPIXELS-led, pixels.Color(0, 0, 0)); //clear led
+#else
+          pixels.setPixelColor(led - 1, pixels.Color(0, 0, 0)); //clear led
+#endif
+
 #if defined DEBUG
 					Serial.print(F("LED "));Serial.print(led);Serial.println(F(" is OFF "));
 #endif
@@ -580,6 +651,18 @@ void handlePreviousState()
 		break;
 	case GOT_D:
 		processD(currentValue);
+		break;
+	case GOT_E:
+		processE(currentValue);
+		break;
+	case GOT_F:
+		processF(currentValue);
+		break;
+	case GOT_H:
+		processH(currentValue);
+		break;
+	case GOT_I:
+		processI(currentValue);
 		break;
 	case GOT_G:
 		processGear(currentValue);
@@ -636,6 +719,18 @@ void processIncomingByte(const byte c)
 			break;
 		case 'D':
 			state = GOT_D;
+			break;
+		case 'E':
+			state = GOT_E;
+			break;
+		case 'F':
+			state = GOT_F;
+			break;
+		case 'H':
+			state = GOT_H;
+			break;
+		case 'I':
+			state = GOT_I;
 			break;
 		case 'Z':
 			state = GOT_STOP;
@@ -765,7 +860,6 @@ void setup()
 		lc.setRow(SEGMODULE1, 1, 1 << led);
 		lc.setRow(SEGMODULE1, 0, 1 << led);
 		lc.setRow(SEGMODULE2, 7, 1 << led);
-		lc.setRow(SEGMODULE2, 7, 1 << led);
 		lc.setRow(SEGMODULE2, 6, 1 << led);
 		lc.setRow(SEGMODULE2, 5, 1 << led);
 		lc.setRow(SEGMODULE2, 4, 1 << led);
@@ -773,6 +867,24 @@ void setup()
 		lc.setRow(SEGMODULE2, 2, 1 << led);
 		lc.setRow(SEGMODULE2, 1, 1 << led);
 		lc.setRow(SEGMODULE2, 0, 1 << led);
+    lc.setRow(SEGMODULE3, 7, 1 << led);
+    lc.setRow(SEGMODULE3, 6, 1 << led);
+    lc.setRow(SEGMODULE3, 5, 1 << led);
+    lc.setRow(SEGMODULE3, 4, 1 << led);
+    lc.setRow(SEGMODULE3, 3, 1 << led);
+    lc.setRow(SEGMODULE3, 2, 1 << led);
+    lc.setRow(SEGMODULE3, 1, 1 << led);
+    lc.setRow(SEGMODULE3, 0, 1 << led);
+    lc.setRow(SEGMODULE4, 7, 1 << led);
+    lc.setRow(SEGMODULE4, 6, 1 << led);
+    lc.setRow(SEGMODULE4, 5, 1 << led);
+    lc.setRow(SEGMODULE4, 4, 1 << led);
+    lc.setRow(SEGMODULE4, 3, 1 << led);
+    lc.setRow(SEGMODULE4, 2, 1 << led);
+    lc.setRow(SEGMODULE4, 1, 1 << led);
+    lc.setRow(SEGMODULE4, 0, 1 << led);
+    
+
 		delay(35);
 	}
 }  // end of setup
