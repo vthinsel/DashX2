@@ -13,11 +13,14 @@ Ax     : Value to dislay in A zone
 Bx     : Value to dislay in B zone
 Cx     : Value to dislay in C zone
 Dx     : Value to dislay in D zone
+<<<<<<< HEAD
 Ex     : Value to dislay in E zone
 Fx     : Value to dislay in F zone
 Hx     : Value to dislay in H zone
 Ix     : Value to dislay in I zone
 
+=======
+>>>>>>> 0fffd7f31ca1e04dc2e2931baced0c958b9ab284
 Gx	   : Gear (- for reverse, 0 for neutral)
 Rx     : RPM update (decimal notation)
 Tx     : Max RPM
