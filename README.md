@@ -113,3 +113,28 @@ Arduino NANO layout:
 		 
 http://busyducks.com/ascii-art-arduinos
 http://busyducks.com/ascii-art-arduinos
+
+
+Some behavior require some values to change in the code as describded below. Especailly the order of the modules which will depend on the cascading of the modules.
+
+// ===============================
+// = Change to match your config =
+// ===============================
+#define DELAY 0
+//#define DEBUG
+// How many NeoPixels are attached to the Arduino?
+#define NUMPIXELS      24 // Number of RGB LEDS in ribbon
+// On which PIN are the NeoPixel attached to ?
+#define PIN            6
+// NeoPixel right/left or left/right orientation
+#define REVERSERPMLEDS
+// MAX7219 pinout (Data,Clock,Strobe,number of cascaded modules)
+LedControl lc = LedControl(10, 11, 12, 5);
+// MAX7219 cascaded modules order. Depends on the soldering
+#define SEGMODULE1 0
+#define SEGMODULE2 2
+#define SEGMODULE3 4
+#define SEGMODULE4 3
+#define GEARMODULE 1
+
+Pay attention when you power your modules: each module will lower the available voltage for the next one by 0.5-0.7V ! It is highly suggested that you do not cascade power lines 
