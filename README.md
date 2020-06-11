@@ -49,19 +49,15 @@ Y2T1600L100N2M3S0R800G2A1B2C3D4G2
 T1600R99
 T1600N2M3L20R1440R1280R1600
 
-If gear is negative, the reverse is assumed and 'r' is displayed
-If gear is 0, neutral is assumed and 'n' is displayed
+If gear is negative, the reverse is assumed and 'R' is displayed
+If gear is 0, neutral is assumed and 'N' is displayed
 
-Power usage: A=B=C=D=8888 RPM=all green GEAR= N (34 LEDS)
-Y1A8888B8888C8888D8888G0T1600R1600G0
-intensity=1 => ? ma
-intensity=2 => ? ma
-intensity=3 => ? ma
-intensity=4 => ? ma
-intensity=5 => ? ma
-intensity=6 => ? ma
-intensity=7 => ? ma
-intensity=8 => ? ma
+Power usage: A=B=C=D=E=F=H=I=8888 RPM=all red GEAR= N (34 LEDS)
+Y1A8888B8888C8888D8888E8888F8888H8888I8888G0T1600R1600G0
+intensity=1  => 0.15 ma
+intensity=4  => 0.32 ma
+intensity=8  => 0.45 ma
+intensity=15 => 0.65 ma
 
 Arduino UNO / Genuino wiring: 
 	+----[PWR]-------------------| USB |--+
@@ -72,9 +68,9 @@ Arduino UNO / Genuino wiring:
 	|                             AREF[ ] |
 	|                              GND[ ] |
 	| [ ]N/C                    SCK/13[ ] |   B5
-	| [ ]IOREF                 MISO/12[ ] |   . TM1638 CLK
-	| [ ]RST                   MOSI/11[X]~|   . TM1638 CS
-	| [ ]3V3    +---+               10[X]~|   . TM1638 DATA
+	| [ ]IOREF                 MISO/12[ ] |   . MAX7219 CS
+	| [ ]RST                   MOSI/11[X]~|   . MAX7219 CLK
+	| [ ]3V3    +---+               10[X]~|   . MAX7219 DATA
 	| [ ]5v    -| A |-               9[X]~|   .
 	| [ ]GND   -| R |-               8[ ] |   B0
 	| [ ]GND   -| D |-                    |
@@ -95,9 +91,9 @@ Arduino NANO layout:
 					  +-----+
 		 +------------| USB |------------+
 		 |            +-----+            |
-	B5   | [ ]D13/SCK        MISO/D12[ ] |   B4 - TM1638 CLK
-		 | [ ]3.3V           MOSI/D11[ ]~|   B3 - TM1638 CS
-		 | [ ]V.ref     ___    SS/D10[ ]~|   B2 - TM1638 DATA
+	B5   | [ ]D13/SCK        MISO/D12[ ] |   B4 - MAX7219 CS
+		 | [ ]3.3V           MOSI/D11[ ]~|   B3 - MAX7219 CLK
+		 | [ ]V.ref     ___    SS/D10[ ]~|   B2 - MAX7219 DATA
 	C0   | [ ]A0       / N \       D9[ ]~|   B1
 	C1   | [ ]A1      /  A  \      D8[ ] |   B0
 	C2   | [ ]A2      \  N  /      D7[ ] |   D7
@@ -106,14 +102,14 @@ Arduino NANO layout:
 	C5   | [ ]A5/SCL               D4[ ] |   D4
 		 | [ ]A6              INT1/D3[ ]~|   D3
 		 | [ ]A7              INT0/D2[ ] |   D2
-TM1638+  | [ ]5V                  GND[ ] |     
+		 | [ ]5V                  GND[ ] |     
 	C6   | [ ]RST                 RST[ ] |   C6
-TM1638-  | [ ]GND   5V MOSI GND   TX1[ ] |   D0
+		 | [ ]GND   5V MOSI GND   TX1[ ] |   D0
 		 | [ ]Vin   [ ] [ ] [ ]   RX1[ ] |   D1
 		 |          [ ] [ ] [ ]          |
 		 |          MISO SCK RST         |
 		 | NANO-V3                       |
 		 +-------------------------------+
 		 
-		 http://busyducks.com/ascii-art-arduinos
-					 http://busyducks.com/ascii-art-arduinos
+http://busyducks.com/ascii-art-arduinos
+http://busyducks.com/ascii-art-arduinos
