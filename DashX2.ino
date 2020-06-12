@@ -781,8 +781,8 @@ void setup()
   intensity = EEPROM.readByte(18);
   rpmlearn = EEPROM.readByte(22);
 
-  if (intensity > 8 || intensity < 1) {
-    intensity = 2;
+  if (intensity > 15 || intensity < 1) {
+    intensity = 4;
   }
   CalcRPMRange();
   Serial.println(F("**** DASHX2 v1.21 ****"));
