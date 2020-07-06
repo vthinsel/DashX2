@@ -539,7 +539,6 @@ void handlePreviousState()
       break;
     case GOT_MAXRPM:
       processMaxRPM(currentValue);
-      CalcRPMRange();
       break;
     case GOT_RPMPCT:
       rpmpercent = currentValue;
@@ -572,7 +571,6 @@ void handlePreviousState()
       break;
     case GOT_R:
       processRPM(currentValue);
-      CalcRPMRange();
 #if defined DEBUG
       CalcRPMRange();
 #endif
@@ -588,7 +586,6 @@ void handlePreviousState()
 #else
               pixels.setPixelColor(led - 1, pixels.Color(intensity + 1 / 2, 0, 0)); // Moderately red color.
 #endif
-
             }
             else {
               if (led > NUMPIXELS - rpmredleds - rpmorangeleds ) {
@@ -880,7 +877,7 @@ void setup()
   processI(0);
   processGear(0);
   pixels.setPixelColor(0, pixels.Color(0, 5, 0));
-  pixels.setPixelColor(23, pixels.Color(0, 5, 0));
+  pixels.setPixelColor(NUMPIXELS-1, pixels.Color(0, 5, 0));
   pixels.show();
 }  // end of setup
 
