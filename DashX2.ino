@@ -76,8 +76,10 @@ void processMaxRPM(const unsigned int value)
 #if defined DEBUG
   Serial.print(F("MaxRPM = ")); Serial.println(value);
 #endif
-  rpmmax = value;
-  CalcRPMRange();
+  if (rpmmax != value){
+    rpmmax = value;
+    CalcRPMRange();
+  }
 }
 
 void processRPM(const unsigned int value)
